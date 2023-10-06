@@ -43,15 +43,26 @@ def draw_graph(xi, yi, date_frame):
     return fig
 
 
-def create_window_choice():
+def conversion_to_normal_view(date_frame):
+    date_frame_norm = []
+    for item in date_frame[3]:
+        hours = item // 10000
+        minutes = (item % 10000) // 100
+        seconds = (item % 100)
+        date_frame_norm.append('{:02}:{:02}:{:02}'.format(hours, minutes, seconds))
+
+    return date_frame_norm
+
+
+def create_window_choice(data_norm):
     layout_select = [
         [sg.Text('Выберите элемент:')],
-        [sg.Listbox(data_frame[3], size=(20, 30), key='-LISTBOX-')],
+        [sg.Listbox(data_norm, size=(20, 30), key='-LISTBOX-')],
         [sg.Button('Выбрать', key='-SELECT-')],
     ]
 
     window_select = sg.Window('Выбор элемента', layout_select, modal=True)
-    selected_item = None
+    selected_item = data_frame[3][0]
 
     while True:
         event_select, values_select = window_select.read()
@@ -66,7 +77,7 @@ def create_window_choice():
     return selected_item
 
 
-def create_layout(data):
+def create_layout(data, data_norm):
     table = [
         [sg.Text('Содержимое файла: ')],
         [sg.Table(values=data,
@@ -78,34 +89,36 @@ def create_layout(data):
                   num_rows=25)]
     ]
 
+    layout1 = [sg.Canvas(key='-CANVAS1-',
+                         size=(300, 200),
+                         pad=(15, 15))]
+
     layout = [[sg.TabGroup([[sg.Tab('Таблица', [[sg.Column(table, element_justification='c')],
                                                 [sg.Button('Закрыть', key='Exit')]])],
-
                             [sg.Tab('График', [[sg.Frame('График зависимости Широты от Долготы',
-                                                         [[sg.Canvas(key='-CANVAS1-',
-                                                                     size=(300, 200),
-                                                                     pad=(15, 15))],
+                                                         [layout1,
                                                           [sg.Button('Построить график', key='graph1')]]),
-
                                                 sg.Frame('График зависимости Скорости от времени',
-                                                         [[sg.Canvas(key='-CANVAS2-',
-                                                                     size=(300, 200),
-                                                                     pad=(15, 15))],
+                                                         [[sg.Column([[sg.Canvas(key='-CANVAS2-',
+                                                                                 size=(300, 200),
+                                                                                 pad=(15, 15))]])],
                                                           [sg.Text('Построить график с '),
-                                                           sg.Text('13.10.2017'), sg.Text('', key='-TEXT1-')],
+                                                           sg.Text('13.10.2017'),
+                                                           sg.Text('{}'.format(data_norm[0]), key='-TEXT1-')],
                                                           [sg.Button('Выбрать дату и время начала', key='time1')],
-
                                                           [sg.Text('Построить график до '),
-                                                           sg.Text('13.10.2017'), sg.Text('', key='-TEXT2-')],
-                                                          [sg.Button('Выбрать дату и время окончания', key='time2')],
-
+                                                           sg.Text('13.10.2017'),
+                                                           sg.Text(data_norm[len(data_norm) - 1], key='-TEXT2-')],
+                                                          [sg.Button('Выбрать дату и время окончания',
+                                                                     key='time2')],
                                                           [sg.Button('Построить график', key='graph2')]])]])]
                             ])]]
+
     return layout
 
 
-def show_window(data, data_frame):
-    layout = create_layout(data)
+def show_window(data, data_frame, data_norm):
+    layout = create_layout(data, data_norm)
     fig1 = draw_graph(6, 4, data_frame)
     fig2 = draw_graph(3, 8, data_frame)
 
@@ -123,6 +136,7 @@ def show_window(data, data_frame):
     figure_canvas_agg2.get_tk_widget().pack(side='top', fill='both',
                                             expand=1)
 
+
     while True:
         event, values = window.read()
         if event == sg.WIN_CLOSED or event == "Exit":
@@ -130,18 +144,20 @@ def show_window(data, data_frame):
         # elif event == 'graph1':
         # elif event == 'graph2':
         elif event == 'time1':
-            select_elem = create_window_choice()
+            select_elem = create_window_choice(data_norm)
             text = ''
             text += ' ' + str(select_elem)
             window['-TEXT1-'].update(text)
         elif event == 'time2':
-            select_elem = create_window_choice()
+            select_elem = create_window_choice(data_norm)
             text = ''
             text += ' ' + str(select_elem)
             window['-TEXT2-'].update(text)
 
+
 data_frame, data = read_file()
-show_window(data, data_frame)
+data_norm = conversion_to_normal_view(data_frame)
+show_window(data, data_frame, data_norm)
 
 # a = data_frame[data_frame[3] == 180832].index[0]
 # print(data_frame[a::][3])
