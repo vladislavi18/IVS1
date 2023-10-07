@@ -131,16 +131,28 @@ def create_layout(data, data_norm):
                                                                      key='time12')]]),
 
                                                 sg.Frame('График зависимости Скорости от времени',
-                                                         [[sg.Column([canvas2])],
-                                                          [sg.Text('Построить график с '),
-                                                           sg.Text('13.10.2017'),
-                                                           sg.Text('{}'.format(data_norm[0]), key='-TEXT21-')],
-                                                          [sg.Button('Выбрать дату и время начала', key='time21')],
-                                                          [sg.Text('Построить график до '),
-                                                           sg.Text('13.10.2017'),
-                                                           sg.Text(data_norm[len(data_norm) - 1], key='-TEXT22-')],
-                                                          [sg.Button('Выбрать дату и время окончания',
-                                                                     key='time22')]])]])]
+                                                         [canvas2,
+                                                          [sg.Column([[sg.Text('Построить график с '),
+                                                                       sg.Text('13.10.2017'),
+                                                                       sg.Text('{}'.format(data_norm[0]),
+                                                                               key='-TEXT21-')],
+                                                                      [sg.Button('Выбрать дату и время начала',
+                                                                                 key='time21')],
+                                                                      [sg.Text('Построить график до '),
+                                                                       sg.Text('13.10.2017'),
+                                                                       sg.Text(data_norm[len(data_norm) - 1],
+                                                                               key='-TEXT22-')],
+                                                                      [sg.Button('Выбрать дату и время окончания',
+                                                                                 key='time22')]]),
+                                                           sg.Column([[sg.Text('единицы измерения времени')]],
+                                                                     ),
+                                                           sg.Column([[sg.Combo(['часы', 'минуты', 'секунды'], 'часы',
+                                                                                key='-COMBO-', size=(20, 1))]
+                                                                      ])],
+                                                          [sg.Push(), sg.Button('Построить график', key='plot_button',
+                                                                                size=(20, 1), pad=(0, (20, 0))),
+                                                           sg.Push()]])
+                                                ]])]
                             ])]]
 
     return layout
@@ -178,7 +190,7 @@ def show_window(data, data_frame, data_norm):
     window = sg.Window('Лабораторная работа №1', layout, element_justification='c', finalize=True)
 
     # Устанавливаем положение окна
-    window.move(300, 150)
+    window.move(300, 200)
 
     figure_canvas_agg1 = FigureCanvasTkAgg(fig1, window['-CANVAS1-'].TKCanvas)
     figure_canvas_agg1.draw()
@@ -221,14 +233,20 @@ def show_window(data, data_frame, data_norm):
 
 
 data_frame, data = read_file()
-data_norm_time = conversion_to_normal_view()
-for i in range(len(data_norm_time) - 1):
-    data[i][2] = data_norm_time[i]
 
-data_norm_data = conversation_data_to_normal()
-for i in range(len(data_norm_data) - 1):
-    data[i][1] = data_norm_data[i]
 
-conversation_data_frame_time_to_hours()
+def main():
+    data_norm_time = conversion_to_normal_view()
+    for i in range(len(data_norm_time) - 1):
+        data[i][2] = data_norm_time[i]
 
-show_window(data, data_frame, data_norm_time)
+    data_norm_data = conversation_data_to_normal()
+    for i in range(len(data_norm_data) - 1):
+        data[i][1] = data_norm_data[i]
+
+    conversation_data_frame_time_to_hours()
+
+    show_window(data, data_frame, data_norm_time)
+
+
+main()
