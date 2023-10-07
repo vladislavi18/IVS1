@@ -29,9 +29,9 @@ def read_file():
         return
 
 
-def draw_graph(xi, yi, date_frame):
+def draw_graph(xi, yi, data_frame, begin_cut, end_cut):
     fig, ax = plt.subplots()
-    ax.plot(date_frame[xi], date_frame[yi], color='red', linestyle='-',
+    ax.plot(data_frame[xi][begin_cut:end_cut], data_frame[yi][begin_cut:end_cut], color='red', linestyle='-',
             label='График {} от {}'.format(header_list_rus[xi - 1],
                                            header_list_rus[yi - 1]))
     ax.set_xlabel(header_list_rus[xi - 1])
@@ -40,7 +40,7 @@ def draw_graph(xi, yi, date_frame):
     disconnect_zoom = zoom_factory(ax)
     pan_handler = panhandler(fig)
 
-    return fig
+    return fig, ax
 
 
 def conversion_to_normal_view(date_frame):
@@ -89,38 +89,72 @@ def create_layout(data, data_norm):
                   num_rows=25)]
     ]
 
-    layout1 = [sg.Canvas(key='-CANVAS1-',
+    canvas1 = [sg.Canvas(key='-CANVAS1-',
+                         size=(300, 200),
+                         pad=(15, 15))]
+
+    canvas2 = [sg.Canvas(key='-CANVAS2-',
                          size=(300, 200),
                          pad=(15, 15))]
 
     layout = [[sg.TabGroup([[sg.Tab('Таблица', [[sg.Column(table, element_justification='c')],
                                                 [sg.Button('Закрыть', key='Exit')]])],
                             [sg.Tab('График', [[sg.Frame('График зависимости Широты от Долготы',
-                                                         [layout1,
-                                                          [sg.Button('Построить график', key='graph1')]]),
-                                                sg.Frame('График зависимости Скорости от времени',
-                                                         [[sg.Column([[sg.Canvas(key='-CANVAS2-',
-                                                                                 size=(300, 200),
-                                                                                 pad=(15, 15))]])],
+                                                         [[sg.Column([canvas1])],
                                                           [sg.Text('Построить график с '),
                                                            sg.Text('13.10.2017'),
-                                                           sg.Text('{}'.format(data_norm[0]), key='-TEXT1-')],
-                                                          [sg.Button('Выбрать дату и время начала', key='time1')],
+                                                           sg.Text('{}'.format(data_norm[0]), key='-TEXT11-')],
+                                                          [sg.Button('Выбрать дату и время начала', key='time11')],
                                                           [sg.Text('Построить график до '),
                                                            sg.Text('13.10.2017'),
-                                                           sg.Text(data_norm[len(data_norm) - 1], key='-TEXT2-')],
+                                                           sg.Text(data_norm[len(data_norm) - 1], key='-TEXT12-')],
                                                           [sg.Button('Выбрать дату и время окончания',
-                                                                     key='time2')],
-                                                          [sg.Button('Построить график', key='graph2')]])]])]
+                                                                     key='time12')]]),
+
+                                                sg.Frame('График зависимости Скорости от времени',
+                                                         [[sg.Column([canvas2])],
+                                                          [sg.Text('Построить график с '),
+                                                           sg.Text('13.10.2017'),
+                                                           sg.Text('{}'.format(data_norm[0]), key='-TEXT21-')],
+                                                          [sg.Button('Выбрать дату и время начала', key='time21')],
+                                                          [sg.Text('Построить график до '),
+                                                           sg.Text('13.10.2017'),
+                                                           sg.Text(data_norm[len(data_norm) - 1], key='-TEXT22-')],
+                                                          [sg.Button('Выбрать дату и время окончания',
+                                                                     key='time22')]])]])]
                             ])]]
 
     return layout
 
 
+def update_canvas(figure_canvas_agg, window, index, isStart, begin_end_cut, xi, yi, key):
+    figure_canvas_agg.get_tk_widget().destroy()
+    if isStart:
+        fig1, ax1 = draw_graph(xi, yi, data_frame, index, begin_end_cut[1])
+        begin_end_cut[0] = index
+    else:
+        fig1, ax1 = draw_graph(xi, yi, data_frame, begin_end_cut[0], index)
+        begin_end_cut[1] = index
+
+    figure_canvas_agg = FigureCanvasTkAgg(fig1, window[key].TKCanvas)
+    figure_canvas_agg.draw()
+    figure_canvas_agg.get_tk_widget().pack(side='top', fill='both',
+                                           expand=1)
+
+    return figure_canvas_agg
+
+
+def work_with_time(key, window, select_elem):
+    text = ''
+    text += ' ' + str(select_elem)
+    window[key].update(text)
+
+
 def show_window(data, data_frame, data_norm):
     layout = create_layout(data, data_norm)
-    fig1 = draw_graph(6, 4, data_frame)
-    fig2 = draw_graph(3, 8, data_frame)
+    begin_end_cut = [0, len(data_frame)]
+    fig1, ax1 = draw_graph(6, 4, data_frame, begin_end_cut[0], begin_end_cut[1])
+    fig2, ax2 = draw_graph(3, 8, data_frame, begin_end_cut[0], begin_end_cut[1])
 
     window = sg.Window('Лабораторная работа №1', layout, element_justification='c', finalize=True)
 
@@ -131,35 +165,42 @@ def show_window(data, data_frame, data_norm):
     figure_canvas_agg1.draw()
     figure_canvas_agg1.get_tk_widget().pack(side='top', fill='both',
                                             expand=1)
+
     figure_canvas_agg2 = FigureCanvasTkAgg(fig2, window['-CANVAS2-'].TKCanvas)
     figure_canvas_agg2.draw()
     figure_canvas_agg2.get_tk_widget().pack(side='top', fill='both',
                                             expand=1)
 
-
     while True:
         event, values = window.read()
         if event == sg.WIN_CLOSED or event == "Exit":
             break
-        # elif event == 'graph1':
-        # elif event == 'graph2':
-        elif event == 'time1':
+        elif event == 'time11':
             select_elem = create_window_choice(data_norm)
-            text = ''
-            text += ' ' + str(select_elem)
-            window['-TEXT1-'].update(text)
-        elif event == 'time2':
+            index = data_norm.index(select_elem)
+            figure_canvas_agg1 = update_canvas(figure_canvas_agg1, window, index, True, begin_end_cut, 6, 4,
+                                               '-CANVAS1-')
+            work_with_time('-TEXT11-', window, select_elem)
+        elif event == 'time12':
             select_elem = create_window_choice(data_norm)
-            text = ''
-            text += ' ' + str(select_elem)
-            window['-TEXT2-'].update(text)
+            index = data_norm.index(select_elem)
+            figure_canvas_agg1 = update_canvas(figure_canvas_agg1, window, index, False, begin_end_cut, 6, 4,
+                                               '-CANVAS1-')
+            work_with_time('-TEXT12-', window, select_elem)
+        elif event == 'time21':
+            select_elem = create_window_choice(data_norm)
+            index = data_norm.index(select_elem)
+            figure_canvas_agg2 = update_canvas(figure_canvas_agg2, window, index, True, begin_end_cut, 3, 8,
+                                               '-CANVAS2-')
+            work_with_time('-TEXT21-', window, select_elem)
+        elif event == 'time22':
+            select_elem = create_window_choice(data_norm)
+            index = data_norm.index(select_elem)
+            figure_canvas_agg2 = update_canvas(figure_canvas_agg2, window, index, False, begin_end_cut, 3, 8,
+                                               '-CANVAS2-')
+            work_with_time('-TEXT22-', window, select_elem)
 
 
 data_frame, data = read_file()
 data_norm = conversion_to_normal_view(data_frame)
 show_window(data, data_frame, data_norm)
-
-# a = data_frame[data_frame[3] == 180832].index[0]
-# print(data_frame[a::][3])
-
-# [sg.Combo(options, default_value=options[0], key="-OPTION-", size=(20, 1))],
