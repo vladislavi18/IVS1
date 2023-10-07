@@ -43,15 +43,34 @@ def draw_graph(xi, yi, data_frame, begin_cut, end_cut):
     return fig, ax
 
 
-def conversion_to_normal_view(date_frame):
-    date_frame_norm = []
-    for item in date_frame[3]:
+def conversion_to_normal_view():
+    data_frame_norm = []
+    for item in data_frame[3]:
         hours = item // 10000
         minutes = (item % 10000) // 100
         seconds = (item % 100)
-        date_frame_norm.append('{:02}:{:02}:{:02}'.format(hours, minutes, seconds))
+        data_frame_norm.append('{:02}:{:02}:{:02}'.format(hours, minutes, seconds))
 
-    return date_frame_norm
+    return data_frame_norm
+
+
+def conversation_data_to_normal():
+    data_frame_norm_data = []
+    for item in data_frame[2]:
+        number = item // 10000
+        month = (item % 10000) // 100
+        year = (item % 100)
+        data_frame_norm_data.append('{}.{}.20{}'.format(number, month, year))
+
+    return data_frame_norm_data
+
+
+def conversation_data_frame_time_to_hours():
+    data_frame_hours = []
+    for item in data_frame[3]:
+        data_frame_hours.append(item / 10000)
+
+    data_frame[3] = data_frame_hours
 
 
 def create_window_choice(data_norm):
@@ -202,5 +221,14 @@ def show_window(data, data_frame, data_norm):
 
 
 data_frame, data = read_file()
-data_norm = conversion_to_normal_view(data_frame)
-show_window(data, data_frame, data_norm)
+data_norm_time = conversion_to_normal_view()
+for i in range(len(data_norm_time) - 1):
+    data[i][2] = data_norm_time[i]
+
+data_norm_data = conversation_data_to_normal()
+for i in range(len(data_norm_data) - 1):
+    data[i][1] = data_norm_data[i]
+
+conversation_data_frame_time_to_hours()
+
+show_window(data, data_frame, data_norm_time)
