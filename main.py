@@ -2,14 +2,15 @@ import PySimpleGUI as sg
 import pandas as pd
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
+import math
 from mpl_interactions import ioff, panhandler, zoom_factory
 
 sg.theme("DarkTeal2")
-header_list = ['DEVICE_ID', 'DATE', 'TIME', 'LATITUDE',
-               'N/S', 'LONGTITUDE', 'E/W', 'SPEED', 'COURSE']
+header_list = ['DEVICE_ID', 'DATE', 'TIME(чч:мм:сс)', 'LATITUDE(градусы)',
+               'N/S', 'LONGTITUDE(градусы)', 'E/W', 'SPEED(км/ч)', 'COURSE']
 
-header_list_rus = ['id устройства', 'дата', 'время', 'широта',
-                   'N/S', 'долгота', 'E/W', 'скорость', 'курс']
+header_list_rus = ['id устройства', 'дата', 'время(ч)', 'широта(градусы)',
+                   'N/S', 'долгота(градусы)', 'E/W', 'скорость(км/ч)', 'курс']
 
 
 def read_file():
@@ -65,6 +66,24 @@ def conversation_data_to_normal():
     return data_frame_norm_data
 
 
+def conversation_lat_long_to_normal():
+    data_frame_norm_latitude = []
+    data_frame_norm_longtitude = []
+    for item in range(len(data_frame)):
+        number = round(math.modf(data_frame[4][item])[1] // 100 + (
+                math.modf(data_frame[4][item])[1] % 100) / 60 + (math
+                                                                 .modf(data_frame[4][item])[0] * 60) / 3600, 4)
+        data_frame_norm_latitude.append(number)
+
+    for item in range(len(data_frame)):
+        number = round(math.modf(data_frame[6][item])[1] // 100 + (
+                math.modf(data_frame[6][item])[1] % 100) / 60 + (math
+                                                                 .modf(data_frame[6][item])[0] * 60) / 3600, 4)
+        data_frame_norm_longtitude.append(number)
+
+    return data_frame_norm_latitude, data_frame_norm_longtitude
+
+
 def conversation_data_frame_time_to_hours():
     data_frame_hours = []
     for item in data_frame[3]:
@@ -101,11 +120,13 @@ def create_layout(data, data_norm):
         [sg.Text('Содержимое файла: ')],
         [sg.Table(values=data,
                   headings=header_list,
+                  auto_size_columns=False,
                   font='Helvetica',
                   pad=(25, 25),
                   display_row_numbers=True,
-                  def_col_width=20,
-                  num_rows=25)]
+                  col_widths=[10, 15, 20, 15, 5, 20, 5, 10, 10],
+                  justification='center',
+                  num_rows=32)]
     ]
 
     canvas1 = [sg.Canvas(key='-CANVAS1-',
@@ -245,6 +266,13 @@ def main():
         data[i][1] = data_norm_data[i]
 
     conversation_data_frame_time_to_hours()
+
+    data1, data2 = conversation_lat_long_to_normal()
+    for i in range(len(data1) - 1):
+        data[i][3] = data1[i]
+        data[i][5] = data2[i]
+    data_frame[4] = data1
+    data_frame[6] = data2
 
     show_window(data, data_frame, data_norm_time)
 
